@@ -782,8 +782,9 @@ async function smartFetch(inputUrl) {
   if (knownTcUrl && strategy !== 'cache-first') {
     setProgress(18, 'Found in known T&C database — fetching…');
     try {
-      const text = await fetchViaProxies(knownTcUrl);
-      if (text && text.length > 400) {
+      const rawHtml = await fetchViaProxies(knownTcUrl);
+      const text = extractText(rawHtml);
+      if (text && text.length > 400 && !isJunkContent(text)) {
         setMethodBadge('Known database');
         return { text, source: 'Known TC database', tcUrl: knownTcUrl };
       }
@@ -806,7 +807,7 @@ async function smartFetch(inputUrl) {
           try { tcHtml = await fetchViaProxies(tcUrl); } catch(e) {}
         }
         const text = extractText(tcHtml);
-        if (text.length > 400) {
+        if (text.length > 400 && !isJunkContent(text)) {
           setMethodBadge('CORS proxy');
           return { text, source: 'Direct (proxy)', tcUrl: targetUrl };
         }
@@ -829,7 +830,7 @@ async function smartFetch(inputUrl) {
           const html = await fetchViaProxies(snapUrl, 15000);
           if (html && html.length > 400) {
             const text = extractText(html);
-            if (text.length > 400) {
+            if (text.length > 400 && !isJunkContent(text)) {
               setMethodBadge('Wayback Machine');
               return { text, source: 'Wayback Machine', tcUrl: t };
             }
@@ -848,7 +849,7 @@ async function smartFetch(inputUrl) {
         const html = await fetchViaProxies(aiTcUrl, 15000);
         if (html && html.length > 400) {
           const text = extractText(html);
-          if (text.length > 200) {
+          if (text.length > 200 && !isJunkContent(text)) {
             setMethodBadge('AI URL lookup');
             return { text, source: 'AI URL lookup', tcUrl: aiTcUrl };
           }
@@ -863,6 +864,35 @@ async function smartFetch(inputUrl) {
   );
 }
 
+// Signals that indicate a bot-block / error page rather than real content.
+// Applied to both raw HTML and extracted plaintext.
+const JUNK_SIGNALS = [
+  'access denied',
+  '403 forbidden',
+  'enable javascript',
+  'unusual traffic',
+  'captcha',
+  'automated requests',
+  'webcache.googleusercontent.com',
+  'this page checks to see',
+  'edgesuite.net',           // Akamai block pages
+  'permission to access',    // Akamai / generic block
+  'reference #',             // Akamai error reference IDs
+  'you don\'t have permission',
+  'cloudflare ray id',       // Cloudflare block pages
+  'checking your browser',   // Cloudflare interstitial
+  'please wait',             // broad but catches many interstitials when combined
+];
+
+function isJunkContent(text) {
+  const lower = text.toLowerCase();
+  // Need at least 2 signals, or one very specific one, to avoid false positives
+  const DEFINITE = ['edgesuite.net', 'cloudflare ray id', 'webcache.googleusercontent.com', 'reference #18.'];
+  if (DEFINITE.some(s => lower.includes(s))) return true;
+  const hits = JUNK_SIGNALS.filter(s => lower.includes(s));
+  return hits.length >= 2;
+}
+
 async function fetchViaProxies(url, timeout = 14000) {
   for (const proxyFn of PROXY_CHAIN) {
     try {
@@ -870,13 +900,7 @@ async function fetchViaProxies(url, timeout = 14000) {
       const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(timeout) });
       if (r.ok) {
         const text = await r.text();
-        const JUNK_SIGNALS = [
-          'Access Denied', '403 Forbidden', 'enable javascript',
-          'unusual traffic', 'CAPTCHA', 'robot', 'automated requests',
-          'webcache.googleusercontent.com', 'This page checks to see'
-        ];
-        const isJunk = JUNK_SIGNALS.some(s => text.toLowerCase().includes(s.toLowerCase()));
-        if (text && !isJunk && text.length > 100) {
+        if (text && !isJunkContent(text) && text.length > 100) {
           return text;
         }
       }
