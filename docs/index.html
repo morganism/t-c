@@ -815,26 +815,35 @@ async function smartFetch(inputUrl) {
     } catch(e) { /* fall through */ }
   }
 
-  // ── 3. Wayback Machine ─────────────────────────────────
+  // ── 3. Wayback Machine (CDX API — HTTP 200 snapshots only) ──────
   if (strategy === 'auto' || strategy === 'cache-first') {
     setProgress(65, 'Trying Wayback Machine…');
-    const wbTargets = knownTcUrl ? [knownTcUrl] : [url];
+    // Try the known TC URL first, then the input URL as fallback
+    const wbTargets = knownTcUrl ? [knownTcUrl, url] : [url];
     for (const t of wbTargets) {
       try {
-        // Get latest snapshot URL
-        const timemapUrl = `https://archive.org/wayback/available?url=${encodeURIComponent(t)}`;
-        const resp = await fetchViaProxies(timemapUrl, 8000);
-        const json = JSON.parse(resp);
-        const snapUrl = json?.archived_snapshots?.closest?.url;
-        if (snapUrl) {
-          const html = await fetchViaProxies(snapUrl, 15000);
-          if (html && html.length > 400) {
-            const text = extractText(html);
-            if (text.length > 400 && !isJunkContent(text)) {
-              setMethodBadge('Wayback Machine');
-              return { text, source: 'Wayback Machine', tcUrl: t };
+        // CDX API: returns only snapshots with HTTP 200, avoiding cached
+        // Akamai/Cloudflare block pages (which archive as 403s).
+        const cdxUrl = `https://web.archive.org/cdx/search/cdx?url=${encodeURIComponent(t)}&output=json&limit=5&fl=timestamp&filter=statuscode:200&fastLatest=true`;
+        const cdxRaw = await fetchViaProxies(cdxUrl, 10000);
+        const cdxJson = JSON.parse(cdxRaw);
+        // Response is [[header], [timestamp], ...]; skip header row
+        const rows = Array.isArray(cdxJson) ? cdxJson.slice(1) : [];
+        for (const row of rows) {
+          const timestamp = row[0];
+          if (!timestamp) continue;
+          // id_ prefix serves raw archived page without Wayback toolbar injection
+          const snapUrl = `https://web.archive.org/web/${timestamp}id_/${t}`;
+          try {
+            const html = await fetchViaProxies(snapUrl, 15000);
+            if (html && html.length > 400) {
+              const text = extractText(html);
+              if (text.length > 400 && !isJunkContent(text)) {
+                setMethodBadge('Wayback Machine');
+                return { text, source: 'Wayback Machine', tcUrl: t };
+              }
             }
-          }
+          } catch(e) { continue; }
         }
       } catch(e) {}
     }
