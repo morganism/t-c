@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0071e3">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="T&C Scanner">
+<meta name="description" content="Scan and summarise Terms & Conditions using AI">
+<title>T&amp;C Scanner</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='43' fill='%230071e3'/%3E%3Crect x='48' y='38' width='96' height='12' rx='6' fill='white'/%3E%3Crect x='48' y='63' width='96' height='12' rx='6' fill='white'/%3E%3Crect x='48' y='88' width='68' height='12' rx='6' fill='white'/%3E%3Ccircle cx='135' cy='143' r='38' fill='%2334c759'/%3E%3Cpath d='M120 143 l11 11 l23-23' stroke='white' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+<style>
+  :root {
+    --apple-bg: #f5f5f7;
+    --apple-surface: #ffffff;
+    --apple-surface-2: #f5f5f7;
+    --apple-surface-3: #e8e8ed;
+    --apple-text: #1d1d1f;
+    --apple-text-secondary: #6e6e73;
+    --apple-text-tertiary: #aeaeb2;
+    --apple-blue: #0071e3;
+    --apple-blue-hover: #0077ed;
+    --apple-blue-light: #e8f1fb;
+    --apple-green: #34c759;
+    --apple-orange: #ff9f0a;
+    --apple-red: #ff3b30;
+    --apple-separator: rgba(0,0,0,0.1);
+    --apple-shadow: 0 2px 20px rgba(0,0,0,0.08);
+    --apple-radius: 18px;
+    --apple-radius-sm: 12px;
+    --apple-radius-xs: 8px;
+    --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+    --transition: 0.2s cubic-bezier(0.4,0,0.2,1);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --apple-bg: #000000;
+      --apple-surface: #1c1c1e;
+      --apple-surface-2: #2c2c2e;
+      --apple-surface-3: #3a3a3c;
+      --apple-text: #f5f5f7;
+      --apple-text-secondary: #aeaeb2;
+      --apple-text-tertiary: #636366;
+      --apple-blue: #0a84ff;
+      --apple-blue-hover: #409cff;
+      --apple-blue-light: rgba(10,132,255,0.12);
+      --apple-separator: rgba(255,255,255,0.1);
+      --apple-shadow: 0 2px 20px rgba(0,0,0,0.4);
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body {
+    font-family: var(--font);
+    background: var(--apple-bg);
+    color: var(--apple-text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    margin: 0; padding: 0;
+  }
+
+  /* ── Header ── */
+  .app-header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(245,245,247,0.85);
+    backdrop-filter: saturate(180%) blur(20px);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 0.5px solid var(--apple-separator);
+    padding: 0 24px; height: 60px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  @media (prefers-color-scheme: dark) { .app-header { background: rgba(28,28,30,0.85); } }
+  .app-logo {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 17px; font-weight: 600; color: var(--apple-text); letter-spacing: -0.3px;
+  }
+  .logo-icon {
+    width: 30px; height: 30px;
+    background: linear-gradient(135deg, #0071e3 0%, #34aadc 100%);
+    border-radius: 8px; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: #fff; flex-shrink: 0;
+  }
+  .gear-btn {
+    width: 36px; height: 36px; border: none;
+    background: var(--apple-surface-3); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; color: var(--apple-text-secondary);
+    cursor: pointer; transition: all var(--transition);
+  }
+  .gear-btn:hover { background: var(--apple-separator); color: var(--apple-text); transform: rotate(30deg); }
+  .gear-btn:active { transform: scale(0.92) rotate(30deg); }
+
+  /* ── Install banner ── */
+  .install-banner {
+    background: linear-gradient(135deg, #0071e3, #34aadc);
+    color: #fff; padding: 12px 20px;
+    display: none; align-items: center; justify-content: space-between; gap: 12px;
+    font-size: 14px;
+  }
+  .install-banner.visible { display: flex; }
+  .install-banner-text { display: flex; align-items: center; gap: 10px; flex: 1; }
+  .install-btn {
+    padding: 7px 16px; border: 1.5px solid rgba(255,255,255,0.8);
+    border-radius: 20px; background: transparent; color: #fff;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    font-family: var(--font); transition: all var(--transition); white-space: nowrap;
+  }
+  .install-btn:hover { background: rgba(255,255,255,0.2); }
+  .install-dismiss {
+    background: none; border: none; color: rgba(255,255,255,0.7);
+    font-size: 20px; cursor: pointer; padding: 0; line-height: 1;
+  }
+
+  /* ── Main ── */
+  .app-main { max-width: 760px; margin: 0 auto; padding: 32px 20px 80px; }
+  @media (max-width: 576px) { .app-main { padding: 24px 16px 60px; } }
+
+  .hero { text-align: center; margin-bottom: 32px; }
+  .hero h1 {
+    font-size: clamp(24px, 5vw, 32px); font-weight: 700;
+    letter-spacing: -0.8px; margin: 0 0 8px; color: var(--apple-text);
+  }
+  .hero p { font-size: 15px; color: var(--apple-text-secondary); margin: 0; line-height: 1.5; }
+
+  /* ── Scan card ── */
+  .scan-card {
+    background: var(--apple-surface); border-radius: var(--apple-radius);
+    box-shadow: var(--apple-shadow); padding: 24px; margin-bottom: 24px;
+  }
+  .url-input-wrap { position: relative; display: flex; gap: 10px; align-items: center; }
+  .url-icon { position: absolute; left: 14px; font-size: 17px; color: var(--apple-text-tertiary); pointer-events: none; }
+  .url-input {
+    flex: 1; height: 48px;
+    border: 1.5px solid var(--apple-separator);
+    border-radius: var(--apple-radius-sm);
+    background: var(--apple-surface-2); color: var(--apple-text);
+    font-family: var(--font); font-size: 15px;
+    padding: 0 14px 0 42px; outline: none;
+    transition: border-color var(--transition), box-shadow var(--transition);
+  }
+  .url-input::placeholder { color: var(--apple-text-tertiary); }
+  .url-input:focus { border-color: var(--apple-blue); box-shadow: 0 0 0 3px rgba(0,113,227,0.15); background: var(--apple-surface); }
+  .scan-btn {
+    height: 48px; padding: 0 22px; border: none;
+    border-radius: var(--apple-radius-sm); background: var(--apple-blue);
+    color: #fff; font-family: var(--font); font-size: 15px; font-weight: 600;
+    cursor: pointer; transition: all var(--transition);
+    white-space: nowrap; display: flex; align-items: center; gap: 7px;
+  }
+  .scan-btn:hover { background: var(--apple-blue-hover); transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,113,227,0.35); }
+  .scan-btn:active { transform: translateY(0) scale(0.98); box-shadow: none; }
+  .scan-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* ── Progress ── */
+  .progress-wrap { margin-top: 18px; display: none; }
+  .progress-wrap.visible { display: block; }
+  .progress-label {
+    font-size: 13px; color: var(--apple-text-secondary); margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .spinner-sm {
+    width: 14px; height: 14px;
+    border: 2px solid var(--apple-separator); border-top-color: var(--apple-blue);
+    border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .progress { height: 4px; border-radius: 2px; background: var(--apple-separator); overflow: hidden; }
+  .progress-bar-fill {
+    height: 100%; background: linear-gradient(90deg, var(--apple-blue), #34aadc);
+    border-radius: 2px; transition: width 0.5s ease;
+  }
+
+  /* ── Method badge ── */
+  .fetch-method {
+    display: none; margin-top: 10px;
+    font-size: 12px; color: var(--apple-text-tertiary);
+    align-items: center; gap: 6px;
+  }
+  .fetch-method.visible { display: flex; }
+  .method-pill {
+    padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;
+    background: var(--apple-surface-2); color: var(--apple-text-secondary);
+  }
+
+  /* ── Error ── */
+  .error-banner {
+    display: none; background: rgba(255,59,48,0.08);
+    border: 1px solid rgba(255,59,48,0.2); border-radius: var(--apple-radius-sm);
+    padding: 12px 16px; font-size: 14px; color: var(--apple-red);
+    margin-top: 14px; gap: 9px; align-items: flex-start;
+  }
+  .error-banner.visible { display: flex; }
+  .error-actions { margin-top: 10px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .error-action-btn {
+    padding: 6px 12px; border: 1px solid var(--apple-red); border-radius: 8px;
+    background: none; color: var(--apple-red); font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: var(--font); transition: all var(--transition);
+  }
+  .error-action-btn:hover { background: rgba(255,59,48,0.08); }
+
+  /* ── Result ── */
+  .result-card {
+    background: var(--apple-surface); border-radius: var(--apple-radius);
+    box-shadow: var(--apple-shadow); overflow: hidden; display: none;
+    animation: slideUp 0.35s cubic-bezier(0.4,0,0.2,1);
+  }
+  .result-card.visible { display: block; }
+  @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+  .result-header {
+    padding: 18px 24px; border-bottom: 0.5px solid var(--apple-separator);
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  }
+  .result-site { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .site-favicon {
+    width: 28px; height: 28px; border-radius: 7px;
+    background: var(--apple-surface-2); display: flex;
+    align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;
+  }
+  .site-favicon img { width: 100%; height: 100%; object-fit: contain; }
+  .site-name { font-size: 14px; font-weight: 600; color: var(--apple-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .result-badges { display: flex; gap: 6px; flex-shrink: 0; }
+  .badge-pill { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+  .badge-risk-low { background: rgba(52,199,89,0.12); color: #1a7a35; }
+  .badge-risk-med { background: rgba(255,159,10,0.12); color: #9a5c00; }
+  .badge-risk-high { background: rgba(255,59,48,0.12); color: #c0392b; }
+  @media (prefers-color-scheme: dark) {
+    .badge-risk-low { color: #30d158; }
+    .badge-risk-med { color: #ff9f0a; }
+    .badge-risk-high { color: #ff453a; }
+  }
+
+  .result-tabs { display: flex; border-bottom: 0.5px solid var(--apple-separator); padding: 0 24px; }
+  .tab-btn {
+    padding: 12px 16px; font-size: 14px; font-weight: 500;
+    color: var(--apple-text-secondary); border: none; background: none;
+    cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all var(--transition); white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--apple-text); }
+  .tab-btn.active { color: var(--apple-blue); border-bottom-color: var(--apple-blue); font-weight: 600; }
+  .tab-panel { padding: 24px; display: none; }
+  .tab-panel.active { display: block; animation: fadeIn 0.2s ease; }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+  .summary-text { font-size: 15px; line-height: 1.7; color: var(--apple-text); margin: 0 0 20px; }
+  .section-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.6px; color: var(--apple-text-tertiary); margin: 0 0 12px; }
+  .key-point {
+    display: flex; gap: 10px; padding: 12px 0;
+    border-bottom: 0.5px solid var(--apple-separator);
+    align-items: flex-start; font-size: 14px; line-height: 1.5;
+  }
+  .key-point:last-child { border-bottom: none; }
+  .kp-icon { font-size: 17px; flex-shrink: 0; margin-top: 1px; }
+  .kp-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--apple-text-tertiary); margin-bottom: 2px; }
+
+  .flag-item {
+    background: rgba(255,59,48,0.06); border: 1px solid rgba(255,59,48,0.15);
+    border-radius: var(--apple-radius-xs); padding: 14px 16px; margin-bottom: 10px;
+    display: flex; gap: 12px; align-items: flex-start; font-size: 14px; line-height: 1.5;
+  }
+  .flag-icon { color: var(--apple-red); font-size: 18px; flex-shrink: 0; }
+  .flag-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: var(--apple-red); margin-bottom: 3px; }
+  .no-flags { text-align: center; padding: 32px 0; color: var(--apple-text-secondary); font-size: 15px; }
+  .no-flags .tick { font-size: 36px; margin-bottom: 12px; color: var(--apple-green); }
+
+  .raw-text-area {
+    background: var(--apple-surface-2); border-radius: var(--apple-radius-xs);
+    padding: 16px; font-size: 12.5px; line-height: 1.7; color: var(--apple-text-secondary);
+    max-height: 420px; overflow-y: auto; white-space: pre-wrap; word-break: break-word;
+    font-family: "SF Mono", "Menlo", "Fira Code", monospace;
+  }
+  .copy-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; background: var(--apple-surface-2);
+    border: 1px solid var(--apple-separator); border-radius: var(--apple-radius-xs);
+    font-size: 13px; font-weight: 500; color: var(--apple-text-secondary);
+    cursor: pointer; transition: all var(--transition); margin-bottom: 12px; font-family: var(--font);
+  }
+  .copy-btn:hover { color: var(--apple-text); background: var(--apple-surface-3); }
+
+  /* ── Settings sheet ── */
+  .settings-overlay {
+    display: none; position: fixed; inset: 0; z-index: 200;
+    background: rgba(0,0,0,0.4); backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px); align-items: flex-end;
+  }
+  .settings-overlay.visible { display: flex; animation: overlayIn 0.2s ease; }
+  @keyframes overlayIn { from { opacity:0; } to { opacity:1; } }
+  .settings-sheet {
+    width: 100%; max-width: 560px; margin: 0 auto;
+    background: var(--apple-surface); border-radius: 24px 24px 0 0;
+    box-shadow: 0 -4px 40px rgba(0,0,0,0.2);
+    animation: sheetUp 0.32s cubic-bezier(0.4,0,0.2,1);
+    max-height: 92vh; overflow-y: auto;
+  }
+  @keyframes sheetUp { from { transform:translateY(100%); } to { transform:translateY(0); } }
+  .sheet-handle { width: 40px; height: 5px; background: var(--apple-surface-3); border-radius: 3px; margin: 12px auto 0; }
+  .sheet-header {
+    padding: 16px 24px 12px; display: flex; align-items: center;
+    justify-content: space-between; border-bottom: 0.5px solid var(--apple-separator);
+  }
+  .sheet-title { font-size: 17px; font-weight: 700; color: var(--apple-text); letter-spacing: -0.3px; }
+  .sheet-close {
+    width: 30px; height: 30px; border: none; background: var(--apple-surface-3);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; color: var(--apple-text-secondary); cursor: pointer; transition: all var(--transition);
+  }
+  .sheet-close:hover { background: var(--apple-separator); }
+  .sheet-body { padding: 20px 24px 40px; }
+  .setting-section { margin-bottom: 28px; }
+  .setting-section-label {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.7px; color: var(--apple-text-tertiary); margin-bottom: 10px; padding-left: 4px;
+  }
+  .setting-row { background: var(--apple-surface-2); border-radius: var(--apple-radius-sm); overflow: hidden; }
+  .setting-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 0.5px solid var(--apple-separator); gap: 12px;
+  }
+  .setting-item:last-child { border-bottom: none; }
+  .setting-item-label { font-size: 15px; color: var(--apple-text); display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .s-icon { color: var(--apple-blue); font-size: 18px; }
+  .setting-control { flex: 1; display: flex; justify-content: flex-end; }
+  .apple-select {
+    appearance: none; background: var(--apple-surface);
+    border: 1.5px solid var(--apple-separator); border-radius: var(--apple-radius-xs);
+    padding: 8px 30px 8px 12px; font-family: var(--font); font-size: 14px;
+    color: var(--apple-text); cursor: pointer; outline: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23aaa' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 10px center;
+    min-width: 170px; transition: border-color var(--transition);
+  }
+  .apple-select:focus { border-color: var(--apple-blue); }
+  .apple-input {
+    background: var(--apple-surface); border: 1.5px solid var(--apple-separator);
+    border-radius: var(--apple-radius-xs); padding: 8px 12px;
+    font-family: var(--font); font-size: 14px; color: var(--apple-text);
+    outline: none; width: 100%; transition: border-color var(--transition), box-shadow var(--transition);
+  }
+  .apple-input::placeholder { color: var(--apple-text-tertiary); }
+  .apple-input:focus { border-color: var(--apple-blue); box-shadow: 0 0 0 3px rgba(0,113,227,0.12); }
+  .api-key-wrap { position: relative; }
+  .api-key-wrap .apple-input { padding-right: 40px; font-family: "SF Mono", monospace; font-size: 13px; }
+  .toggle-key-btn {
+    position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--apple-text-tertiary); cursor: pointer; font-size: 16px; padding: 2px;
+  }
+  .toggle-key-btn:hover { color: var(--apple-text); }
+  .save-settings-btn {
+    width: 100%; height: 50px; border: none;
+    border-radius: var(--apple-radius-sm); background: var(--apple-blue);
+    color: #fff; font-family: var(--font); font-size: 17px; font-weight: 600;
+    cursor: pointer; transition: all var(--transition); margin-top: 8px;
+  }
+  .save-settings-btn:hover { background: var(--apple-blue-hover); transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0,113,227,0.3); }
+  .save-settings-btn:active { transform: scale(0.98); }
+
+  /* ── Misc ── */
+  .no-settings-warn {
+    background: rgba(255,159,10,0.08); border: 1px solid rgba(255,159,10,0.2);
+    border-radius: var(--apple-radius-sm); padding: 14px 18px; font-size: 14px; color: #9a5c00;
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+    cursor: pointer; transition: all var(--transition);
+  }
+  .no-settings-warn:hover { background: rgba(255,159,10,0.14); }
+  @media (prefers-color-scheme: dark) { .no-settings-warn { color: var(--apple-orange); } }
+  .history-section { margin-bottom: 24px; display: none; }
+  .history-section.visible { display: block; }
+  .history-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.7px; color: var(--apple-text-tertiary); margin-bottom: 10px; }
+  .history-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .history-pill {
+    padding: 5px 12px; background: var(--apple-surface);
+    border: 1px solid var(--apple-separator); border-radius: 20px;
+    font-size: 13px; color: var(--apple-blue); cursor: pointer;
+    transition: all var(--transition); box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  }
+  .history-pill:hover { background: var(--apple-blue-light); border-color: var(--apple-blue); }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--apple-surface-3); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-logo">
+    <div class="logo-icon"><i class="bi bi-file-earmark-text-fill"></i></div>
+    T&amp;C Scanner
+  </div>
+  <button class="gear-btn" id="openSettings" aria-label="Settings">
+    <i class="bi bi-gear-fill"></i>
+  </button>
+</header>
+
+<!-- PWA install banner -->
+<div class="install-banner" id="installBanner">
+  <div class="install-banner-text">
+    <i class="bi bi-download" style="font-size:18px; flex-shrink:0;"></i>
+    <span>Install T&amp;C Scanner for quick access from your home screen</span>
+  </div>
+  <button class="install-btn" id="installBtn">Install</button>
+  <button class="install-dismiss" id="dismissInstall" aria-label="Dismiss">×</button>
+</div>
+
+<main class="app-main">
+  <div class="hero">
+    <h1>Scan Any T&amp;Cs Instantly</h1>
+    <p>Enter a website URL — AI finds, reads, and summarises the Terms &amp; Conditions in plain English.</p>
+  </div>
+
+  <div class="no-settings-warn" id="noSettingsWarn" onclick="openSettingsSheet()">
+    <i class="bi bi-exclamation-triangle-fill" style="font-size:18px; flex-shrink:0;"></i>
+    <span>No AI configured. Tap here to add your API key in Settings before scanning.</span>
+  </div>
+
+  <div class="history-section" id="historySection">
+    <div class="history-label">Recent</div>
+    <div class="history-pills" id="historyPills"></div>
+  </div>
+
+  <div class="scan-card">
+    <div class="url-input-wrap">
+      <i class="bi bi-globe2 url-icon"></i>
+      <input type="url" class="url-input" id="urlInput"
+        placeholder="https://tesco.com" autocomplete="off" autocapitalize="none" spellcheck="false">
+      <button class="scan-btn" id="scanBtn">
+        <i class="bi bi-search"></i>
+        <span id="scanBtnText">Scan</span>
+      </button>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label">
+        <div class="spinner-sm"></div>
+        <span id="progressLabel">Starting…</span>
+      </div>
+      <div class="progress"><div class="progress-bar-fill" id="progressBar" style="width:0%"></div></div>
+      <div class="fetch-method" id="fetchMethod">
+        <span>Source:</span><span class="method-pill" id="methodPill"></span>
+      </div>
+    </div>
+
+    <div class="error-banner" id="errorBanner">
+      <div style="flex:1">
+        <div style="display:flex;align-items:flex-start;gap:9px">
+          <i class="bi bi-exclamation-circle-fill" style="font-size:18px;flex-shrink:0;margin-top:1px"></i>
+          <span id="errorText"></span>
+        </div>
+        <div class="error-actions" id="errorActions"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="result-card" id="resultCard">
+    <div class="result-header">
+      <div class="result-site">
+        <div class="site-favicon" id="siteFavicon"><i class="bi bi-globe2" style="font-size:15px;color:var(--apple-text-tertiary)"></i></div>
+        <span class="site-name" id="siteName"></span>
+      </div>
+      <div class="result-badges"><span class="badge-pill" id="riskBadge"></span></div>
+    </div>
+
+    <div class="result-tabs">
+      <button class="tab-btn active" data-tab="summary">Summary</button>
+      <button class="tab-btn" data-tab="flags">Red Flags</button>
+      <button class="tab-btn" data-tab="raw">Raw Text</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-summary">
+      <p class="summary-text" id="summaryText"></p>
+      <div class="section-label">Key Points</div>
+      <div id="keyPointsList"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-flags">
+      <div id="flagsList"></div>
+    </div>
+
+    <div class="tab-panel" id="tab-raw">
+      <button class="copy-btn" id="copyBtn"><i class="bi bi-clipboard"></i> Copy to clipboard</button>
+      <div class="raw-text-area" id="rawText"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Settings sheet -->
+<div class="settings-overlay" id="settingsOverlay" onclick="handleOverlayClick(event)">
+  <div class="settings-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <div class="sheet-title">Settings</div>
+      <button class="sheet-close" onclick="closeSettingsSheet()"><i class="bi bi-x-lg"></i></button>
+    </div>
+    <div class="sheet-body">
+      <div class="setting-section">
+        <div class="setting-section-label">AI Provider</div>
+        <div class="setting-row">
+          <div class="setting-item">
+            <div class="setting-item-label"><i class="bi bi-robot s-icon"></i> Model</div>
+            <div class="setting-control">
+              <select class="apple-select" id="aiModel">
+                <optgroup label="Anthropic">
+                  <option value="claude|claude-opus-4-5">Claude Opus 4.5</option>
+                  <option value="claude|claude-sonnet-4-5" selected>Claude Sonnet 4.5</option>
+                  <option value="claude|claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+                </optgroup>
+                <optgroup label="OpenAI">
+                  <option value="openai|gpt-4o">GPT-4o</option>
+                  <option value="openai|gpt-4o-mini">GPT-4o mini</option>
+                  <option value="openai|gpt-4-turbo">GPT-4 Turbo</option>
+                </optgroup>
+                <optgroup label="Google">
+                  <option value="google|gemini-2.5-pro">Gemini 2.5 Pro</option>
+                  <option value="google|gemini-2.5-flash">Gemini 2.5 Flash</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-section">
+        <div class="setting-section-label">API Key</div>
+        <div class="setting-row">
+          <div class="setting-item" style="flex-direction:column;align-items:stretch;gap:8px">
+            <div class="setting-item-label"><i class="bi bi-key-fill s-icon"></i><span id="apiKeyLabel">API Key</span></div>
+            <div class="api-key-wrap">
+              <input type="password" class="apple-input" id="apiKeyInput" placeholder="Paste your API key here…">
+              <button class="toggle-key-btn" onclick="toggleKeyVisibility()"><i class="bi bi-eye" id="toggleKeyIcon"></i></button>
+            </div>
+            <div style="font-size:12px;color:var(--apple-text-tertiary);padding:0 2px">
+              Stored in this browser only — never sent anywhere except the chosen AI provider.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="setting-section">
+        <div class="setting-section-label">Scan Options</div>
+        <div class="setting-row">
+          <div class="setting-item">
+            <div class="setting-item-label"><i class="bi bi-layers s-icon"></i> Depth</div>
+            <div class="setting-control">
+              <select class="apple-select" id="scanDepth">
+                <option value="brief">Brief</option>
+                <option value="standard" selected>Standard</option>
+                <option value="detailed">Detailed</option>
+              </select>
+            </div>
+          </div>
+          <div class="setting-item">
+            <div class="setting-item-label"><i class="bi bi-shield-check s-icon"></i> Fetch Strategy</div>
+            <div class="setting-control">
+              <select class="apple-select" id="fetchStrategy">
+                <option value="auto" selected>Auto (recommended)</option>
+                <option value="proxy-only">Proxy only</option>
+                <option value="cache-first">Cache first</option>
+                <option value="ai-lookup">AI URL lookup</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="save-settings-btn" onclick="saveSettings()">Save Settings</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// Known T&C URLs for major sites that block crawlers
+// ══════════════════════════════════════════════════════════
+const KNOWN_TC_URLS = {
+  'tesco.com': 'https://www.tesco.com/shop/en-GB/zone/general-terms-and-conditions',
+  'amazon.co.uk': 'https://www.amazon.co.uk/gp/help/customer/display.html?nodeId=201909000',
+  'amazon.com': 'https://www.amazon.com/gp/help/customer/display.html?nodeId=508088',
+  'google.com': 'https://policies.google.com/terms',
+  'apple.com': 'https://www.apple.com/legal/internet-services/terms/site.html',
+  'facebook.com': 'https://www.facebook.com/terms.php',
+  'meta.com': 'https://www.facebook.com/terms.php',
+  'twitter.com': 'https://twitter.com/en/tos',
+  'x.com': 'https://twitter.com/en/tos',
+  'instagram.com': 'https://help.instagram.com/478745558852511',
+  'microsoft.com': 'https://www.microsoft.com/en-us/servicesagreement/',
+  'netflix.com': 'https://help.netflix.com/legal/termsofuse',
+  'spotify.com': 'https://www.spotify.com/uk/legal/end-user-agreement/',
+  'ebay.co.uk': 'https://www.ebay.co.uk/help/policies/member-behaviour-policies/user-agreement?id=4259',
+  'ebay.com': 'https://www.ebay.com/help/policies/member-behaviour-policies/user-agreement?id=4259',
+  'paypal.com': 'https://www.paypal.com/uk/webapps/mpp/ua/useragreement-full',
+  'airbnb.com': 'https://www.airbnb.co.uk/help/article/2908',
+  'uber.com': 'https://www.uber.com/gb/en/legal/terms/gb/',
+  'deliveroo.co.uk': 'https://deliveroo.co.uk/legal',
+  'just-eat.co.uk': 'https://www.just-eat.co.uk/info/terms-and-conditions',
+  'linkedin.com': 'https://www.linkedin.com/legal/user-agreement',
+  'dropbox.com': 'https://www.dropbox.com/terms',
+  'github.com': 'https://docs.github.com/en/site-policy/github-terms/github-terms-of-service',
+  'notion.so': 'https://www.notion.so/Terms-and-Privacy-28ffdd083dc3473e9c2da6ec011b58ac',
+  'slack.com': 'https://slack.com/intl/en-gb/terms-of-service/user',
+  'zoom.us': 'https://explore.zoom.us/en/terms/',
+  'booking.com': 'https://www.booking.com/content/terms.en-gb.html',
+  'tripadvisor.com': 'https://tripadvisor.mediaroom.com/us-terms-of-use',
+  'bbc.co.uk': 'https://www.bbc.co.uk/usingthebbc/terms/',
+  'sky.com': 'https://www.sky.com/shop/help/terms-conditions',
+  'bt.com': 'https://www.bt.com/terms/termsandconditions.html',
+  'vodafone.co.uk': 'https://www.vodafone.co.uk/terms-and-conditions',
+  'o2.co.uk': 'https://www.o2.co.uk/termsandconditions',
+  'virginmedia.com': 'https://www.virginmedia.com/help/virgin-media-terms-conditions',
+  'hsbc.co.uk': 'https://www.hsbc.co.uk/legal/',
+  'barclays.co.uk': 'https://www.barclays.co.uk/important-information/conditions-of-use/',
+  'lloydsbank.com': 'https://www.lloydsbank.com/legal/',
+  'natwest.com': 'https://www.natwest.com/support-centre/general-information/terms-conditions.html',
+  'sainsburys.co.uk': 'https://www.sainsburys.co.uk/webapp/wcs/stores/servlet/gb/groceries/help/terms-and-conditions',
+  'asda.com': 'https://groceries.asda.com/help-hub/terms-conditions',
+  'waitrose.com': 'https://www.waitrose.com/ecom/content/help-and-information/terms-and-conditions',
+  'marks-and-spencer.com': 'https://www.marksandspencer.com/c/site-information/terms-and-conditions',
+  'johnlewis.com': 'https://www.johnlewis.com/content/legal-documents/terms-and-conditions',
+  'asos.com': 'https://www.asos.com/terms-and-conditions/',
+  'next.co.uk': 'https://www.next.co.uk/p3/help/termsandconditions',
+  'argos.co.uk': 'https://www.argos.co.uk/help/terms-and-conditions/',
+  'currys.co.uk': 'https://www.currys.co.uk/terms-and-conditions.html',
+};
+
+// ══════════════════════════════════════════════════════════
+// CORS Proxies — ordered by reliability & bot-bypass ability
+// ══════════════════════════════════════════════════════════
+const PROXY_CHAIN = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(url)}`,
+  url => `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`,
+];
+
+const WAYBACK_BASE = 'https://timetravel.mementoweb.org/timemap/link/';
+const GCACHE_BASE  = 'https://webcache.googleusercontent.com/search?q=cache:';
+
+// ══════════════════════════════════════════════════════════
+const STORAGE_KEY  = 'tc_scanner_settings_v2';
+const HISTORY_KEY  = 'tc_scanner_history_v2';
+
+let settings = { model: 'claude|claude-sonnet-4-5', apiKey: '', depth: 'standard', fetchStrategy: 'auto' };
+let scanHistory = [];
+let rawTCText   = '';
+let deferredInstallPrompt = null;
+
+// ══ PWA Install ══════════════════════════════════════════
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  const dismissed = localStorage.getItem('tc_install_dismissed');
+  if (!dismissed) {
+    document.getElementById('installBanner').classList.add('visible');
+  }
+});
+
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  const { outcome } = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  document.getElementById('installBanner').classList.remove('visible');
+});
+
+document.getElementById('dismissInstall').addEventListener('click', () => {
+  localStorage.setItem('tc_install_dismissed', '1');
+  document.getElementById('installBanner').classList.remove('visible');
+});
+
+window.addEventListener('appinstalled', () => {
+  document.getElementById('installBanner').classList.remove('visible');
+});
+
+// ══ Service Worker ════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(err => console.warn('SW:', err));
+}
+
+// ══ Init ═════════════════════════════════════════════════
+function init() {
+  loadSettings();
+  loadHistory();
+  updateSettingsUI();
+  checkSettingsWarning();
+
+  document.getElementById('urlInput').addEventListener('keydown', e => { if (e.key === 'Enter') startScan(); });
+  document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => switchTab(b.dataset.tab)));
+  document.getElementById('copyBtn').addEventListener('click', copyRaw);
+  document.getElementById('scanBtn').addEventListener('click', startScan);
+  document.getElementById('openSettings').addEventListener('click', openSettingsSheet);
+}
+
+// ══ Settings ═════════════════════════════════════════════
+function loadSettings() {
+  try { settings = { ...settings, ...JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') }; } catch(e) {}
+}
+function saveSettings() {
+  settings.model         = document.getElementById('aiModel').value;
+  settings.apiKey        = document.getElementById('apiKeyInput').value.trim();
+  settings.depth         = document.getElementById('scanDepth').value;
+  settings.fetchStrategy = document.getElementById('fetchStrategy').value;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+  checkSettingsWarning();
+  closeSettingsSheet();
+  showToast('Settings saved');
+}
+function updateSettingsUI() {
+  document.getElementById('aiModel').value        = settings.model;
+  document.getElementById('apiKeyInput').value    = settings.apiKey;
+  document.getElementById('scanDepth').value      = settings.depth;
+  document.getElementById('fetchStrategy').value  = settings.fetchStrategy;
+  updateApiKeyLabel();
+}
+function updateApiKeyLabel() {
+  const p = (document.getElementById('aiModel').value || '').split('|')[0];
+  const m = { claude: 'Anthropic API Key', openai: 'OpenAI API Key', google: 'Google AI API Key' };
+  document.getElementById('apiKeyLabel').textContent = m[p] || 'API Key';
+}
+function checkSettingsWarning() {
+  document.getElementById('noSettingsWarn').style.display = settings.apiKey ? 'none' : 'flex';
+}
+function toggleKeyVisibility() {
+  const i = document.getElementById('apiKeyInput');
+  const ic = document.getElementById('toggleKeyIcon');
+  i.type = i.type === 'password' ? 'text' : 'password';
+  ic.className = i.type === 'password' ? 'bi bi-eye' : 'bi bi-eye-slash';
+}
+
+// ══ Sheet ═════════════════════════════════════════════════
+function openSettingsSheet()  { updateSettingsUI(); document.getElementById('settingsOverlay').classList.add('visible'); }
+function closeSettingsSheet() { document.getElementById('settingsOverlay').classList.remove('visible'); }
+function handleOverlayClick(e) { if (e.target === document.getElementById('settingsOverlay')) closeSettingsSheet(); }
+
+// ══ History ═══════════════════════════════════════════════
+function loadHistory() {
+  try { scanHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); } catch(e) { scanHistory = []; }
+  renderHistory();
+}
+function addToHistory(url) {
+  scanHistory = [url, ...scanHistory.filter(u => u !== url)].slice(0, 8);
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(scanHistory));
+  renderHistory();
+}
+function renderHistory() {
+  const sec = document.getElementById('historySection');
+  const pills = document.getElementById('historyPills');
+  if (!scanHistory.length) { sec.classList.remove('visible'); return; }
+  sec.classList.add('visible');
+  pills.innerHTML = scanHistory.map(u => {
+    const d = u.replace(/^https?:\/\//, '').replace(/\/$/, '').split('/')[0];
+    return `<button class="history-pill" onclick="loadHistory_url('${escHtml(u)}')">${escHtml(d)}</button>`;
+  }).join('');
+}
+function loadHistory_url(url) {
+  document.getElementById('urlInput').value = url;
+  startScan();
+}
+
+// ══ FETCH STRATEGY ════════════════════════════════════════
+/**
+ * Multi-layer fetch with fallback chain:
+ * 1. Known TC URL database (skip scraping entirely)
+ * 2. CORS proxy chain (4 proxies)
+ * 3. Google Cache
+ * 4. Wayback Machine (Internet Archive)
+ * 5. AI-powered known TC URL lookup
+ * Returns { text, source, tcUrl }
+ */
+async function smartFetch(inputUrl) {
+  let url = inputUrl;
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  const hostname = new URL(url).hostname.replace(/^www\./, '');
+  const strategy = settings.fetchStrategy;
+
+  setProgress(8, 'Checking known T&C database…');
+  setMethodBadge('');
+
+  // ── 1. Known URL database ──────────────────────────────
+  const knownTcUrl = KNOWN_TC_URLS[hostname] || KNOWN_TC_URLS['www.' + hostname];
+  if (knownTcUrl && strategy !== 'cache-first') {
+    setProgress(18, 'Found in known T&C database — fetching…');
+    try {
+      const text = await fetchViaProxies(knownTcUrl);
+      if (text && text.length > 400) {
+        setMethodBadge('Known database');
+        return { text, source: 'Known TC database', tcUrl: knownTcUrl };
+      }
+    } catch(e) { /* fall through */ }
+  }
+
+  // ── 2. Fetch home page & discover TC link ──────────────
+  if (strategy !== 'cache-first' && strategy !== 'ai-lookup') {
+    setProgress(28, 'Fetching site homepage…');
+    try {
+      const homeHtml = await fetchViaProxies(url);
+      if (homeHtml && homeHtml.length > 200) {
+        setProgress(42, 'Looking for T&C link…');
+        const tcUrl = findTCLinkInHtml(homeHtml, url);
+        const targetUrl = tcUrl || url;
+
+        setProgress(55, 'Loading T&C page…');
+        let tcHtml = homeHtml;
+        if (tcUrl && tcUrl !== url) {
+          try { tcHtml = await fetchViaProxies(tcUrl); } catch(e) {}
+        }
+        const text = extractText(tcHtml);
+        if (text.length > 400) {
+          setMethodBadge('CORS proxy');
+          return { text, source: 'Direct (proxy)', tcUrl: targetUrl };
+        }
+      }
+    } catch(e) { /* fall through */ }
+  }
+
+  // ── 3. Google Cache ────────────────────────────────────
+  if (strategy === 'auto' || strategy === 'cache-first') {
+    setProgress(62, 'Trying Google Cache…');
+    const cacheTargets = knownTcUrl
+      ? [knownTcUrl, url]
+      : [url];
+    for (const t of cacheTargets) {
+      try {
+        const cacheUrl = `${GCACHE_BASE}${encodeURIComponent(t)}`;
+        const html = await fetchViaProxies(cacheUrl, 12000);
+        if (html && html.length > 400) {
+          const text = extractText(html);
+          if (text.length > 400) {
+            setMethodBadge('Google Cache');
+            return { text, source: 'Google Cache', tcUrl: t };
+          }
+        }
+      } catch(e) {}
+    }
+  }
+
+  // ── 4. Wayback Machine ─────────────────────────────────
+  if (strategy === 'auto' || strategy === 'cache-first') {
+    setProgress(72, 'Trying Wayback Machine…');
+    const wbTargets = knownTcUrl ? [knownTcUrl] : [url];
+    for (const t of wbTargets) {
+      try {
+        // Get latest snapshot URL
+        const timemapUrl = `https://archive.org/wayback/available?url=${encodeURIComponent(t)}`;
+        const resp = await fetchViaProxies(timemapUrl, 8000);
+        const json = JSON.parse(resp);
+        const snapUrl = json?.archived_snapshots?.closest?.url;
+        if (snapUrl) {
+          const html = await fetchViaProxies(snapUrl, 15000);
+          if (html && html.length > 400) {
+            const text = extractText(html);
+            if (text.length > 400) {
+              setMethodBadge('Wayback Machine');
+              return { text, source: 'Wayback Machine', tcUrl: t };
+            }
+          }
+        }
+      } catch(e) {}
+    }
+  }
+
+  // ── 5. AI URL lookup + fetch ───────────────────────────
+  if (strategy === 'auto' || strategy === 'ai-lookup') {
+    setProgress(82, 'Using AI to find T&C URL…');
+    try {
+      const aiTcUrl = await aiLookupTCUrl(url);
+      if (aiTcUrl) {
+        const html = await fetchViaProxies(aiTcUrl, 15000);
+        if (html && html.length > 400) {
+          const text = extractText(html);
+          if (text.length > 200) {
+            setMethodBadge('AI URL lookup');
+            return { text, source: 'AI URL lookup', tcUrl: aiTcUrl };
+          }
+        }
+      }
+    } catch(e) {}
+  }
+
+  throw new Error(
+    'Unable to access this site\'s Terms & Conditions. This usually happens because the site uses aggressive bot-protection (Akamai, Cloudflare). ' +
+    'Try pasting the direct URL to their T&C page instead.'
+  );
+}
+
+async function fetchViaProxies(url, timeout = 14000) {
+  for (const proxyFn of PROXY_CHAIN) {
+    try {
+      const proxyUrl = proxyFn(url);
+      const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(timeout) });
+      if (r.ok) {
+        const text = await r.text();
+        if (text && !text.includes('Access Denied') && !text.includes('403 Forbidden') && text.length > 100) {
+          return text;
+        }
+      }
+    } catch(e) { /* try next proxy */ }
+  }
+  throw new Error('All proxies failed for: ' + url);
+}
+
+async function aiLookupTCUrl(siteUrl) {
+  const [provider, model] = settings.model.split('|');
+  const prompt = `What is the exact direct URL for the Terms and Conditions (or Terms of Service) page of ${siteUrl}? Reply with ONLY the URL, nothing else. If you don't know, reply with "unknown".`;
+
+  let text = '';
+  if (provider === 'claude') {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': settings.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model, max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
+    });
+    const d = await r.json();
+    text = d.content?.[0]?.text?.trim() || '';
+  } else if (provider === 'openai') {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.apiKey}` },
+      body: JSON.stringify({ model, max_tokens: 200, messages: [{ role: 'user', content: prompt }] })
+    });
+    const d = await r.json();
+    text = d.choices?.[0]?.message?.content?.trim() || '';
+  } else if (provider === 'google') {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { maxOutputTokens: 200 } })
+    });
+    const d = await r.json();
+    text = d.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+  }
+
+  if (text && text.startsWith('http') && !text.includes('unknown')) return text;
+  return null;
+}
+
+function findTCLinkInHtml(html, baseUrl) {
+  const origin = new URL(baseUrl).origin;
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const links = [...doc.querySelectorAll('a[href]')];
+  // Prioritised patterns — terms/conditions before generic legal/privacy
+  const patterns = [
+    /terms[\s-_&+]*and[\s-_&+]*conditions/i,
+    /terms[\s-_&+]*of[\s-_&+]*(use|service)/i,
+    /\bt[&+]c\b/i, /\btos\b/i, /\beula\b/i,
+    /user[\s-_]*agreement/i, /terms/i, /conditions/i,
+    /legal/i
+  ];
+  for (const pat of patterns) {
+    const found = links.find(a => {
+      const txt  = (a.textContent || '').trim();
+      const href = a.getAttribute('href') || '';
+      return pat.test(txt) || pat.test(href);
+    });
+    if (found) {
+      const href = found.getAttribute('href');
+      try { return new URL(href, origin).href; } catch(e) {}
+    }
+  }
+  return null;
+}
+
+function extractText(html) {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  ['script','style','nav','header','footer','aside','iframe','.cookie-banner','[aria-hidden="true"]','.nav','#nav','.menu','#menu'].forEach(s => {
+    try { doc.querySelectorAll(s).forEach(el => el.remove()); } catch(e) {}
+  });
+  const candidates = ['main','article','.terms','.terms-content','#terms','#terms-content','.legal','.legal-content','#legal','.content','.page-content','.entry-content','[role="main"]','body'];
+  for (const s of candidates) {
+    const el = doc.querySelector(s);
+    if (el) {
+      const t = (el.textContent || '').replace(/\s+/g, ' ').trim();
+      if (t.length > 400) return t;
+    }
+  }
+  return ((doc.body?.textContent) || '').replace(/\s+/g, ' ').trim();
+}
+
+// ══ Main scan flow ════════════════════════════════════════
+async function startScan() {
+  const rawUrl = document.getElementById('urlInput').value.trim();
+  if (!rawUrl) { document.getElementById('urlInput').focus(); return; }
+
+  if (!settings.apiKey) {
+    showError('Please add your API key in Settings first.', []);
+    openSettingsSheet();
+    return;
+  }
+
+  setScanning(true);
+  hideError();
+  document.getElementById('resultCard').classList.remove('visible');
+  document.getElementById('fetchMethod').classList.remove('visible');
+
+  try {
+    const { text, source, tcUrl } = await smartFetch(rawUrl);
+
+    setProgress(88, `Analysing with AI…`);
+    const analysis = await analyseWithAI(text, rawUrl);
+
+    setProgress(100, 'Done!');
+    rawTCText = text;
+    renderResult(rawUrl, analysis, text, source);
+    addToHistory(rawUrl.startsWith('http') ? rawUrl : 'https://' + rawUrl);
+
+    setTimeout(() => {
+      setScanning(false);
+      document.getElementById('progressWrap').classList.remove('visible');
+    }, 700);
+
+  } catch(err) {
+    setScanning(false);
+    document.getElementById('progressWrap').classList.remove('visible');
+    const actions = [];
+    // Offer to paste the direct T&C URL
+    actions.push({ label: 'Try direct T&C URL', fn: 'promptDirectUrl()' });
+    showError(err.message || 'Something went wrong. Please try again.', actions);
+  }
+}
+
+function promptDirectUrl() {
+  const u = prompt('Paste the direct URL of the T&C page (e.g. https://example.com/terms):');
+  if (u && u.trim()) {
+    document.getElementById('urlInput').value = u.trim();
+    startScan();
+  }
+}
+
+// ══ AI Analysis ═══════════════════════════════════════════
+async function analyseWithAI(text, url) {
+  const [provider, model] = settings.model.split('|');
+  const depth = settings.depth;
+  const maxChars = depth === 'brief' ? 6000 : depth === 'detailed' ? 26000 : 15000;
+  const truncated = text.length > maxChars ? text.slice(0, maxChars) + '\n\n[Text truncated for length]' : text;
+
+  const systemPrompt = `You are a legal document analyst specialising in Terms & Conditions. Analyse the T&C text and return ONLY a valid JSON object — no markdown, no preamble, no trailing text — with this exact structure:
+{"summary":"2-3 sentence plain English overview","risk":"low|medium|high","keyPoints":[{"icon":"emoji","label":"category","text":"description"}],"redFlags":[{"label":"flag type","text":"description of concern"}]}
+keyPoints: cover data collection, user rights, cancellation/refunds, liability limits, arbitration/disputes, auto-renewal, IP ownership, account termination, content moderation, governing law (6-10 points total).
+redFlags: only genuine concerns. 0 is fine if truly standard. risk: low=fair standard terms, medium=some concerns, high=exploitative or unusual.`;
+
+  const userPrompt = `Site: ${url}\n\nT&C text:\n\n${truncated}`;
+  let responseText = '';
+
+  if (provider === 'claude') {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': settings.apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model, max_tokens: 2048, system: systemPrompt, messages: [{ role: 'user', content: userPrompt }] })
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(`Anthropic: ${e.error?.message || r.statusText}`); }
+    responseText = (await r.json()).content?.[0]?.text || '';
+  } else if (provider === 'openai') {
+    const r = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${settings.apiKey}` },
+      body: JSON.stringify({ model, max_tokens: 2048, messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }] })
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(`OpenAI: ${e.error?.message || r.statusText}`); }
+    responseText = (await r.json()).choices?.[0]?.message?.content || '';
+  } else if (provider === 'google') {
+    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${settings.apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contents: [{ parts: [{ text: systemPrompt + '\n\n' + userPrompt }] }], generationConfig: { maxOutputTokens: 2048 } })
+    });
+    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(`Google AI: ${e.error?.message || r.statusText}`); }
+    responseText = (await r.json()).candidates?.[0]?.content?.parts?.[0]?.text || '';
+  }
+
+  const clean = responseText.replace(/```json|```/g, '').trim();
+  const match = clean.match(/\{[\s\S]*\}/);
+  if (!match) throw new Error('AI returned an unexpected response. Please try again.');
+  return JSON.parse(match[0]);
+}
+
+// ══ Render ═══════════════════════════════════════════════
+function renderResult(url, analysis, rawText, source) {
+  let parsedUrl;
+  try { parsedUrl = new URL(url.startsWith('http') ? url : 'https://' + url); } catch(e) { parsedUrl = { hostname: url }; }
+  const hostname = parsedUrl.hostname;
+
+  document.getElementById('siteName').textContent = hostname;
+  document.getElementById('siteFavicon').innerHTML =
+    `<img src="https://www.google.com/s2/favicons?domain=${hostname}&sz=32" onerror="this.parentElement.innerHTML='<i class=\\'bi bi-globe2\\' style=\\'font-size:15px;color:var(--apple-text-tertiary)\\'></i>'" alt="">`;
+
+  const riskMap = {
+    low:    { cls: 'badge-risk-low',  label: '✓ Low Risk' },
+    medium: { cls: 'badge-risk-med',  label: '⚠ Medium Risk' },
+    high:   { cls: 'badge-risk-high', label: '✗ High Risk' },
+  };
+  const risk = riskMap[analysis.risk] || riskMap.medium;
+  const badge = document.getElementById('riskBadge');
+  badge.className = `badge-pill ${risk.cls}`;
+  badge.textContent = risk.label;
+
+  document.getElementById('summaryText').textContent = analysis.summary || '';
+
+  document.getElementById('keyPointsList').innerHTML = (analysis.keyPoints || []).map(kp => `
+    <div class="key-point">
+      <div class="kp-icon">${kp.icon || '📄'}</div>
+      <div>
+        <div class="kp-label">${escHtml(kp.label || '')}</div>
+        <div style="color:var(--apple-text)">${escHtml(kp.text || '')}</div>
+      </div>
+    </div>`).join('');
+
+  const flags = analysis.redFlags || [];
+  document.getElementById('flagsList').innerHTML = !flags.length
+    ? `<div class="no-flags"><div class="tick">✓</div><div>No significant red flags found.<br><span style="font-size:14px;color:var(--apple-text-tertiary)">These T&Cs appear fair and standard.</span></div></div>`
+    : flags.map(f => `
+      <div class="flag-item">
+        <i class="bi bi-exclamation-triangle-fill flag-icon"></i>
+        <div>
+          <div class="flag-label">${escHtml(f.label || 'Concern')}</div>
+          <div style="color:var(--apple-text)">${escHtml(f.text || '')}</div>
+        </div>
+      </div>`).join('');
+
+  // Update tab label with count
+  document.querySelector('[data-tab="flags"]').textContent = flags.length ? `Red Flags (${flags.length})` : 'Red Flags';
+
+  document.getElementById('rawText').textContent = rawText;
+
+  // Show source in method badge area (reuse)
+  if (source) {
+    document.getElementById('methodPill').textContent = source;
+    document.getElementById('fetchMethod').classList.add('visible');
+  }
+
+  switchTab('summary');
+  document.getElementById('resultCard').classList.add('visible');
+  setTimeout(() => document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+}
+
+// ══ UI helpers ════════════════════════════════════════════
+function setScanning(on) {
+  document.getElementById('scanBtn').disabled = on;
+  document.getElementById('scanBtnText').textContent = on ? 'Scanning…' : 'Scan';
+  if (on) document.getElementById('progressWrap').classList.add('visible');
+}
+function setProgress(pct, label) {
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+}
+function setMethodBadge(label) {
+  if (!label) return;
+  document.getElementById('methodPill').textContent = label;
+  document.getElementById('fetchMethod').classList.add('visible');
+}
+function showError(msg, actions) {
+  document.getElementById('errorText').textContent = msg;
+  const actionsEl = document.getElementById('errorActions');
+  actionsEl.innerHTML = (actions || []).map(a => `<button class="error-action-btn" onclick="${a.fn}">${escHtml(a.label)}</button>`).join('');
+  document.getElementById('errorBanner').classList.add('visible');
+}
+function hideError() { document.getElementById('errorBanner').classList.remove('visible'); }
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-' + name));
+}
+function copyRaw() {
+  navigator.clipboard.writeText(rawTCText).then(() => showToast('Copied to clipboard'));
+}
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  Object.assign(t.style, {
+    position:'fixed', bottom:'30px', left:'50%', transform:'translateX(-50%)',
+    background:'var(--apple-text)', color:'var(--apple-surface)',
+    padding:'10px 20px', borderRadius:'20px', fontSize:'14px', fontWeight:'500',
+    zIndex:'9999', opacity:'0', transition:'opacity 0.2s', fontFamily:'var(--font)',
+    pointerEvents:'none', whiteSpace:'nowrap'
+  });
+  document.body.appendChild(t);
+  requestAnimationFrame(() => { t.style.opacity='1'; });
+  setTimeout(() => { t.style.opacity='0'; setTimeout(()=>t.remove(),250); }, 2000);
+}
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+init();
+</script>
+</body>
+</html>
