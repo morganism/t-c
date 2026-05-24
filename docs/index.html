@@ -558,7 +558,6 @@
               <select class="apple-select" id="fetchStrategy">
                 <option value="auto" selected>Auto (recommended)</option>
                 <option value="proxy-only">Proxy only</option>
-                <option value="cache-first">Cache first</option>
                 <option value="ai-lookup">AI URL lookup</option>
               </select>
             </div>
@@ -636,7 +635,6 @@ const PROXY_CHAIN = [
 ];
 
 const WAYBACK_BASE = 'https://timetravel.mementoweb.org/timemap/link/';
-const GCACHE_BASE  = 'https://webcache.googleusercontent.com/search?q=cache:';
 
 // ══════════════════════════════════════════════════════════
 const STORAGE_KEY  = 'tc_scanner_settings_v2';
@@ -816,30 +814,9 @@ async function smartFetch(inputUrl) {
     } catch(e) { /* fall through */ }
   }
 
-  // ── 3. Google Cache ────────────────────────────────────
+  // ── 3. Wayback Machine ─────────────────────────────────
   if (strategy === 'auto' || strategy === 'cache-first') {
-    setProgress(62, 'Trying Google Cache…');
-    const cacheTargets = knownTcUrl
-      ? [knownTcUrl, url]
-      : [url];
-    for (const t of cacheTargets) {
-      try {
-        const cacheUrl = `${GCACHE_BASE}${encodeURIComponent(t)}`;
-        const html = await fetchViaProxies(cacheUrl, 12000);
-        if (html && html.length > 400) {
-          const text = extractText(html);
-          if (text.length > 400) {
-            setMethodBadge('Google Cache');
-            return { text, source: 'Google Cache', tcUrl: t };
-          }
-        }
-      } catch(e) {}
-    }
-  }
-
-  // ── 4. Wayback Machine ─────────────────────────────────
-  if (strategy === 'auto' || strategy === 'cache-first') {
-    setProgress(72, 'Trying Wayback Machine…');
+    setProgress(65, 'Trying Wayback Machine…');
     const wbTargets = knownTcUrl ? [knownTcUrl] : [url];
     for (const t of wbTargets) {
       try {
@@ -862,7 +839,7 @@ async function smartFetch(inputUrl) {
     }
   }
 
-  // ── 5. AI URL lookup + fetch ───────────────────────────
+  // ── 4. AI URL lookup + fetch ───────────────────────────
   if (strategy === 'auto' || strategy === 'ai-lookup') {
     setProgress(82, 'Using AI to find T&C URL…');
     try {
@@ -893,7 +870,13 @@ async function fetchViaProxies(url, timeout = 14000) {
       const r = await fetch(proxyUrl, { signal: AbortSignal.timeout(timeout) });
       if (r.ok) {
         const text = await r.text();
-        if (text && !text.includes('Access Denied') && !text.includes('403 Forbidden') && text.length > 100) {
+        const JUNK_SIGNALS = [
+          'Access Denied', '403 Forbidden', 'enable javascript',
+          'unusual traffic', 'CAPTCHA', 'robot', 'automated requests',
+          'webcache.googleusercontent.com', 'This page checks to see'
+        ];
+        const isJunk = JUNK_SIGNALS.some(s => text.toLowerCase().includes(s.toLowerCase()));
+        if (text && !isJunk && text.length > 100) {
           return text;
         }
       }
